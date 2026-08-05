@@ -298,13 +298,20 @@
             let filtered = allMatches.filter(m => m._parsedDate && m._parsedDate >= min && m._parsedDate <= max);
             if (currentTab === 'bomb') filtered = filtered.filter(m => m._isBomb);
             
-            filtered.sort((a,b) => {
-                // Ordine principale: sempre per data (dalla più vicina alla più lontana)
+            filtered.sort((a, b) => {
+                // La DATA comanda SEMPRE come primo filtro in entrambe le viste
                 const dateDiff = a._parsedDate.getTime() - b._parsedDate.getTime();
                 if (dateDiff !== 0) return dateDiff;
                 
-                // Se stessa data, ordina per campionato
-                return (a['Campionato']||'').localeCompare(b['Campionato']||'');
+                // SECONDO FILTRO: dipende dalla vista selezionata
+                if (currentView === 'league') {
+                    // Vista Campionato: dopo la data, ordina A-Z per campionato
+                    return (a['Campionato'] || '').localeCompare(b['Campionato'] || '', 'it', { sensitivity: 'base' });
+                } else {
+                    // Vista Data: nessun secondo filtro alfabetico, mantieni ordine orario puro
+                    // (I campionati saranno naturalmente misti a parità di data/ora)
+                    return 0; 
+                }
             });
             
             return filtered;
