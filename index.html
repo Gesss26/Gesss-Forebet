@@ -50,7 +50,6 @@
         .tab-btn.active { background: var(--col-gold); color: #000; border-color: var(--col-gold); }
         .tab-btn:hover:not(.active) { border-color: var(--text-main); color: var(--text-main); }
         
-        /* NUOVO STILE PER GLI SWITCH */
         .view-switch {
             display: flex;
             background: var(--bg-card);
@@ -147,7 +146,6 @@
             <button class="tab-btn" onclick="switchTab('bomb')">💣 BOMBA</button>
         </div>
         
-        <!-- NUOVI SWITCH PER LA VISUALIZZAZIONE -->
         <div class="view-switch" id="view-switch">
             <button class="view-btn active" data-view="date" onclick="setView('date')">
                 <i class="fa-regular fa-calendar"></i> Data
@@ -172,7 +170,7 @@
 
         let allMatches = [];
         let currentTab = 'all';
-        let currentView = 'date'; // 'date' o 'league'
+        let currentView = 'date';
 
         // === CLOCK ===
         function updateClock() {
@@ -218,20 +216,17 @@
         async function loadData() {
             const dashboard = document.getElementById('dashboard');
             
-            // Try cache first
             try {
                 const cached = localStorage.getItem(STORAGE_KEY);
                 if (cached) {
                     const parsed = JSON.parse(cached);
                     allMatches = parsed.matches || [];
                     renderDashboard();
-                    // Background refresh
                     fetchFromGitHub(true);
                     return;
                 }
             } catch(e) {}
 
-            // No cache: fetch from GitHub
             await fetchFromGitHub(false);
         }
 
@@ -249,7 +244,6 @@
                 
                 allMatches = json.map(enrichMatch);
                 
-                // Save to cache
                 try {
                     localStorage.setItem(STORAGE_KEY, JSON.stringify({ matches: allMatches, timestamp: new Date().toISOString() }));
                 } catch(e) { console.warn('Storage full'); }
@@ -274,9 +268,7 @@
             const maxVal = probs[0].v;
             const othersSum = probs[1].v + probs[2].v;
             
-            // Oro: Max > (AltriDue + 10)
             const isGold = maxVal > (othersSum + 10);
-            // Bomba: Oro + DC > 85%
             const isBomb = isGold && dcSum > 85;
             
             const parsedDate = parseDate(m['Data']);
@@ -306,19 +298,15 @@
             let filtered = allMatches.filter(m => m._parsedDate && m._parsedDate >= min && m._parsedDate <= max);
             if (currentTab === 'bomb') filtered = filtered.filter(m => m._isBomb);
             
-            // SORTING in base alla vista selezionata
             filtered.sort((a,b) => {
-                if (currentView === 'league') {
-                    // Prima per DATA (dalla pi  recente alla meno recente)
-                    const dateDiff = b._parsedDate.getTime() - a._parsedDate.getTime();
-                    if (dateDiff !== 0) return dateDiff;
-                    // Poi per nome del campionato (alfabetico)
-                    return (a['Campionato']||'').localeCompare(b['Campionato']||'');
-                } else {
-                    // Ordine per data crescente (dalla pi  vicina alla pi  lontana)
-                    return a._parsedDate.getTime() - b._parsedDate.getTime();
-                }
+                // Ordine principale: sempre per data (dalla più vicina alla più lontana)
+                const dateDiff = a._parsedDate.getTime() - b._parsedDate.getTime();
+                if (dateDiff !== 0) return dateDiff;
+                
+                // Se stessa data, ordina per campionato
+                return (a['Campionato']||'').localeCompare(b['Campionato']||'');
             });
+            
             return filtered;
         }
 
