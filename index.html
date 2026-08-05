@@ -49,6 +49,33 @@
         .tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; transition: var(--transition); }
         .tab-btn.active { background: var(--col-gold); color: #000; border-color: var(--col-gold); }
         .tab-btn:hover:not(.active) { border-color: var(--text-main); color: var(--text-main); }
+        
+        /* NUOVO STILE PER GLI SWITCH */
+        .view-switch {
+            display: flex;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .view-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            font-size: 0.85rem;
+        }
+        .view-btn.active {
+            background: var(--col-gold);
+            color: #000;
+        }
+        .view-btn:hover:not(.active) {
+            color: var(--text-main);
+        }
+        
         select.sort-select { background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); padding: 0.5rem 1rem; border-radius: 6px; transition: var(--transition); cursor: pointer; outline: none; }
         select.sort-select:focus { border-color: var(--col-gold); }
         .info-badge { font-size: 0.8rem; color: var(--text-muted); background: rgba(128,128,128,0.1); padding: 0.3rem 0.8rem; border-radius: 20px; margin-left: auto; }
@@ -100,6 +127,8 @@
             .controls-bar { padding: 1rem; flex-direction: column; align-items: stretch; }
             .info-badge { margin-left: 0; text-align: center; }
             #dashboard { padding: 1rem; grid-template-columns: 1fr; }
+            .view-switch { width: 100%; }
+            .view-btn { flex: 1; text-align: center; }
         }
     </style>
 </head>
@@ -117,10 +146,17 @@
             <button class="tab-btn active" onclick="switchTab('all')">Tutte le Partite</button>
             <button class="tab-btn" onclick="switchTab('bomb')">💣 BOMBA</button>
         </div>
-        <select class="sort-select" id="sort-select" onchange="changeSort(this.value)">
-            <option value="date">Ordina: Data (Recenti)</option>
-            <option value="league">Ordina: Campionato (A-Z)</option>
-        </select>
+        
+        <!-- NUOVI SWITCH PER LA VISUALIZZAZIONE -->
+        <div class="view-switch" id="view-switch">
+            <button class="view-btn active" data-view="date" onclick="setView('date')">
+                <i class="fa-regular fa-calendar"></i> Data
+            </button>
+            <button class="view-btn" data-view="league" onclick="setView('league')">
+                <i class="fa-regular fa-futbol"></i> Campionato
+            </button>
+        </div>
+        
         <div class="info-badge"><i class="fa-regular fa-calendar"></i> Oggi → +6 giorni</div>
     </div>
 
@@ -136,7 +172,7 @@
 
         let allMatches = [];
         let currentTab = 'all';
-        let currentSort = 'date';
+        let currentView = 'date'; // 'date' o 'league'
 
         // === CLOCK ===
         function updateClock() {
@@ -162,6 +198,14 @@
             document.querySelector('#theme-toggle i').className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
         }
         document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+        // === VIEW SWITCH ===
+        function setView(view) {
+            currentView = view;
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector(`.view-btn[data-view="${view}"]`).classList.add('active');
+            renderDashboard();
+        }
 
         // === DATA LOADING ===
         async function loadData() {
@@ -255,9 +299,15 @@
             let filtered = allMatches.filter(m => m._parsedDate && m._parsedDate >= min && m._parsedDate <= max);
             if (currentTab === 'bomb') filtered = filtered.filter(m => m._isBomb);
             
+            // SORTING in base alla vista selezionata
             filtered.sort((a,b) => {
-                if (currentSort === 'league') return (a['Campionato']||'').localeCompare(b['Campionato']||'');
-                return a._parsedDate.getTime() - b._parsedDate.getTime();
+                if (currentView === 'league') {
+                    // Ordine alfabetico per campionato
+                    return (a['Campionato']||'').localeCompare(b['Campionato']||'');
+                } else {
+                    // Ordine per data (crescente: dalla più vicina alla più lontana)
+                    return a._parsedDate.getTime() - b._parsedDate.getTime();
+                }
             });
             return filtered;
         }
@@ -269,7 +319,6 @@
             event.target.classList.add('active');
             renderDashboard();
         }
-        function changeSort(val) { currentSort = val; renderDashboard(); }
 
         function getProbClasses(p1, px, p2, maxVal, isGold) {
             const vals = [p1,px,p2]; const sorted = [...vals].sort((a,b)=>a-b);
@@ -307,12 +356,24 @@
             }
 
             let lastDateLabel = '';
+            let lastLeagueName = '';
+            
             matches.forEach(m => {
-                if (m._parsedDate && currentSort === 'date') {
+                // Separatori per data (solo in vista "date")
+                if (currentView === 'date' && m._parsedDate) {
                     const dl = formatDateLabel(m._parsedDate);
                     if (dl !== lastDateLabel) {
                         lastDateLabel = dl;
                         dashboard.insertAdjacentHTML('beforeend', `<div class="date-separator"><div class="date-separator-inner"><i class="fa-regular fa-calendar-day"></i>${dl}<div class="date-separator-line"></div></div></div>`);
+                    }
+                }
+                
+                // Separatori per campionato (solo in vista "league")
+                if (currentView === 'league') {
+                    const league = m['Campionato'] || 'Altro';
+                    if (league !== lastLeagueName) {
+                        lastLeagueName = league;
+                        dashboard.insertAdjacentHTML('beforeend', `<div class="date-separator"><div class="date-separator-inner"><i class="fa-solid fa-trophy"></i>${league}<div class="date-separator-line"></div></div></div>`);
                     }
                 }
 
