@@ -2,23 +2,14 @@
   "name": "Forebet Dashboard Pro",
   "short_name": "ForebetPro",
   "description": "Dashboard pronostici calcio con analisi avanzate",
-  "start_url": "/index.html",
+  "start_url": "/Gesss-Forebet/",
+  "scope": "/Gesss-Forebet/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "any",
   "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933246.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/2933/2933246.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "https://cdn-icons-png.flaticon.com/512/2933/2933246.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "https://cdn-icons-png.flaticon.com/512/2933/2933246.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
