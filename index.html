@@ -177,9 +177,16 @@
         // === CLOCK ===
         function updateClock() {
             const now = new Date();
-            document.getElementById('live-clock').textContent = now.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', second:'2-digit' });
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('live-clock').textContent = `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
         }
-        setInterval(updateClock, 1000); updateClock();
+        setInterval(updateClock, 1000);
+        updateClock();
 
         // === THEME ===
         function initTheme() {
@@ -302,10 +309,13 @@
             // SORTING in base alla vista selezionata
             filtered.sort((a,b) => {
                 if (currentView === 'league') {
-                    // Ordine alfabetico per campionato
+                    // Prima per DATA (dalla pi  recente alla meno recente)
+                    const dateDiff = b._parsedDate.getTime() - a._parsedDate.getTime();
+                    if (dateDiff !== 0) return dateDiff;
+                    // Poi per nome del campionato (alfabetico)
                     return (a['Campionato']||'').localeCompare(b['Campionato']||'');
                 } else {
-                    // Ordine per data (crescente: dalla più vicina alla più lontana)
+                    // Ordine per data crescente (dalla pi  vicina alla pi  lontana)
                     return a._parsedDate.getTime() - b._parsedDate.getTime();
                 }
             });
