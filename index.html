@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forebet Dashboard Pro</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2933/2933246.png">
+    
+    <!-- Librerie -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* === VARIABILI TEMA === */
+        :root {
+            --transition: all 0.3s ease;
+        }
+        
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --header-bg: rgba(15, 23, 42, 0.95);
+            --upload-border: #475569;
+            --col-red: #ef4444;
+            --col-white: #e2e8f0;
+            --col-green: #22c55e;
+            --col-gold: #fbbf24;
+        }
+        
+        [data-theme="light"] {
+            --bg-primary: #f1f5f9;
+            --bg-card: #ffffff;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --header-bg: rgba(255, 255, 255, 0.95);
+            --upload-border: #cbd5e1;
+            --col-red: #dc2626;
+            --col-white: #475569;
+            --col-green: #16a34a;
+            --col-gold: #d97706;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            transition: var(--transition);
+        }
+
+        /* HEADER */
+        header {
+            background: var(--header-bg);
+            backdrop-filter: blur(10px);
+            position: sticky; top: 0; z-index: 100;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex; justify-content: space-between; align-items: center;
+            transition: var(--transition);
+        }
+
+        .brand { font-weight: 800; font-size: 1.5rem; }
+        .brand span { color: var(--col-gold); }
+        
+        .header-controls { display: flex; gap: 1rem; align-items: center; }
+        
+        .clock {
+            font-family: 'Courier New', monospace; font-weight: 600;
+            color: var(--col-gold); background: rgba(251,191,36,0.1);
+            padding: 0.4rem 0.8rem; border-radius: 6px;
+            border: 1px solid rgba(251,191,36,0.3);
+        }
+
+        .theme-toggle {
+            background: none; border: 1px solid var(--border);
+            color: var(--text-main); width: 40px; height: 40px;
+            border-radius: 8px; cursor: pointer; font-size: 1.1rem;
+            transition: var(--transition);
+        }
+        .theme-toggle:hover { background: var(--border); }
+
+        /* CONTROLS BAR */
+        .controls-bar {
+            padding: 1rem 2rem; display: flex; gap: 1rem; 
+            align-items: center; flex-wrap: wrap;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-primary); transition: var(--transition);
+        }
+
+        .tabs { display: flex; gap: 0.5rem; }
+        .tab-btn {
+            background: transparent; border: 1px solid var(--border);
+            color: var(--text-muted); padding: 0.5rem 1rem;
+            border-radius: 6px; cursor: pointer; font-weight: 600;
+            transition: var(--transition);
+        }
+        .tab-btn.active {
+            background: var(--col-gold); color: #000; border-color: var(--col-gold);
+        }
+
+        select.sort-select {
+            background: var(--bg-card); color: var(--text-main);
+            border: 1px solid var(--border); padding: 0.5rem 1rem;
+            border-radius: 6px; transition: var(--transition);
+        }
+
+        .data-info {
+            margin-left: auto; font-size: 0.8rem; color: var(--text-muted);
+            display: flex; align-items: center; gap: 0.5rem;
+        }
+
+        /* UPLOAD ZONE */
+        #upload-zone {
+            max-width: 600px; margin: 2rem auto; padding: 3rem;
+            border: 2px dashed var(--upload-border); border-radius: 16px;
+            text-align: center; cursor: pointer; transition: var(--transition);
+        }
+        #upload-zone:hover { border-color: var(--col-gold); background: rgba(251,191,36,0.05); }
+        #file-input { display: none; }
+
+        /* GRID & CARDS */
+        #dashboard {
+            padding: 2rem; display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1.5rem; max-width: 1800px; margin: 0 auto; width: 100%;
+        }
+
+        .match-card {
+            background: var(--bg-card); border-radius: 12px; padding: 1.25rem;
+            border: 1px solid var(--border); transition: var(--transition);
+            display: flex; flex-direction: column; gap: 0.75rem;
+        }
+        .match-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .match-card.bomb-card { border-color: var(--col-gold); box-shadow: 0 0 15px rgba(251,191,36,0.15); }
+
+        .card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;
+            border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;
+        }
+        .league-name { font-weight: 600; color: var(--col-gold); }
+
+        .teams-row { display: flex; justify-content: space-between; font-weight: 700; }
+        .team.away { text-align: right; }
+        .vs-badge { color: var(--text-muted); font-size: 0.7rem; }
+
+        .prediction-core { display: flex; justify-content: center; align-items: center; gap: 1rem; margin: 0.5rem 0; }
+        .pred-badge {
+            font-size: 1.2rem; font-weight: 800; min-width: 60px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 10px; background: rgba(128,128,128,0.1); padding: 0 10px;
+        }
+
+        .prob-container { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .prob-box {
+            text-align: center; padding: 0.4rem 0; border-radius: 6px;
+            font-size: 0.8rem; font-weight: 700; position: relative;
+        }
+        .prob-label { font-size: 0.6rem; opacity: 0.8; display: block; margin-bottom: 2px; }
+
+        /* COLORI DINAMICI */
+        .c-red { color: var(--col-red); }
+        .bg-red { background: rgba(239,68,68,0.15); color: var(--col-red); border: 1px solid rgba(239,68,68,0.3); }
+        .c-white { color: var(--col-white); }
+        .bg-white { background: rgba(128,128,128,0.1); color: var(--col-white); border: 1px solid var(--border); }
+        .c-green { color: var(--col-green); }
+        .bg-green { background: rgba(34,197,94,0.15); color: var(--col-green); border: 1px solid rgba(34,197,94,0.3); }
+        .c-gold { color: var(--col-gold); text-shadow: 0 0 10px rgba(251,191,36,0.5); }
+        .bg-gold { 
+            background: rgba(251,191,36,0.2); color: var(--col-gold); 
+            border: 1px solid var(--col-gold); animation: pulse-gold 2s infinite;
+        }
+
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(251,191,36,0); }
+            100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+        }
+
+        .stats-footer {
+            display: flex; justify-content: space-between; font-size: 0.75rem;
+            color: var(--text-muted); margin-top: 0.5rem; padding-top: 0.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            grid-column: 1/-1; text-align: center; padding: 4rem;
+            color: var(--text-muted); font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 1rem; flex-direction: column; gap: 0.5rem; }
+            .controls-bar { padding: 1rem; flex-direction: column; align-items: stretch; }
+            .data-info { margin-left: 0; justify-content: center; }
+            #dashboard { padding: 1rem; grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand"><i class="fa-solid fa-chart-line"></i> Forebet<span>Dashboard</span></div>
+        <div class="header-controls">
+            <div class="clock" id="live-clock">--:--:--</div>
+            <button class="theme-toggle" id="theme-toggle" title="Cambia Tema">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="controls-bar">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('all')">Tutte</button>
+            <button class="tab-btn" onclick="switchTab('bomb')">💣 BOMBA</button>
+        </div>
+        <select class="sort-select" id="sort-select" onchange="changeSort(this.value)">
+            <option value="date">Ordina: Data (Recenti)</option>
+            <option value="league">Ordina: Campionato (A-Z)</option>
+        </select>
+        <div class="data-info" id="data-info">
+            <i class="fa-solid fa-database"></i> Nessun dato caricato
+        </div>
+    </div>
+
+    <div id="upload-zone">
+        <i class="fa-solid fa-file-excel" style="font-size:3rem; color:var(--text-muted); margin-bottom:1rem;"></i>
+        <h3>Carica il tuo file XLSX</h3>
+        <p style="color: var(--text-muted); margin-top: 0.5rem;">
+            Trascina qui oppure clicca per selezionare.<br>
+            <small>I dati verranno salvati localmente.</small>
+        </p>
+        <input type="file" id="file-input" accept=".xlsx, .xls">
+    </div>
+
+    <div id="dashboard"></div>
+
+    <script>
+        // === STATE MANAGEMENT ===
+        const STORAGE_KEY = 'forebet_dashboard_data';
+        const THEME_KEY = 'forebet_theme';
+        let matchesData = [];
+        let currentTab = 'all';
+        let currentSort = 'date';
+
+        // === THEME SYSTEM ===
+        function initTheme() {
+            const saved = localStorage.getItem(THEME_KEY) || 'dark';
+            document.documentElement.setAttribute('data-theme', saved);
+            updateThemeIcon(saved);
+        }
+
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem(THEME_KEY, next);
+            updateThemeIcon(next);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.querySelector('#theme-toggle i');
+            icon.className = theme === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+        }
+
+        document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
+        // === CLOCK ===
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('live-clock').textContent = 
+                now.toLocaleDateString('it-IT', { weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+        }
+        setInterval(updateClock, 1000); updateClock();
+
+        // === LOCAL STORAGE ===
+        function saveData(data) {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    matches: data,
+                    timestamp: new Date().toISOString()
+                }));
+                updateDataInfo();
+            } catch(e) { console.error('Storage full', e); }
+        }
+
+        function loadData() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    matchesData = parsed.matches || [];
+                    updateDataInfo();
+                    return true;
+                }
+            } catch(e) { console.error('Load error', e); }
+            return false;
+        }
+
+        function updateDataInfo() {
+            const info = document.getElementById('data-info');
+            if (matchesData.length > 0) {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const ts = raw ? new Date(JSON.parse(raw).timestamp) : null;
+                const dateStr = ts ? ts.toLocaleDateString('it-IT', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+                info.innerHTML = `<i class="fa-solid fa-check-circle" style="color:var(--col-green)"></i> ${matchesData.length} partite • Aggiornato: ${dateStr}`;
+                document.getElementById('upload-zone').style.display = 'none';
+                renderDashboard();
+            } else {
+                info.innerHTML = '<i class="fa-solid fa-database"></i> Nessun dato caricato';
+            }
+        }
+
+        // === FILE UPLOAD ===
+        const uploadZone = document.getElementById('upload-zone');
+        const fileInput = document.getElementById('file-input');
+        
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.style.borderColor = 'var(--col-gold)'; });
+        uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = ''; });
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault(); uploadZone.style.borderColor = '';
+            if(e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files.length) processFile(e.target.files[0]);
+        });
+
+        function processFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const wb = XLSX.read(data, {type:'array'});
+                const json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {defval:""});
+                
+                // Arricchisci dati
+                matchesData = json.map(m => enrichMatch(m));
+                saveData(matchesData);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // === MATCH LOGIC ===
+        function enrichMatch(match) {
+            const p1 = parseFloat(match['Prob_1%'])||0;
+            const px = parseFloat(match['Prob_X%'])||0;
+            const p2 = parseFloat(match['Prob_2%'])||0;
+            
+            const probs = [{l:'1',v:p1},{l:'X',v:px},{l:'2',v:p2}].sort((a,b)=>b.v-a.v);
+            const dcLabel = probs.slice(0,2).map(p=>p.l).sort().join('');
+            const dcSum = probs[0].v + probs[1].v;
+            const maxVal = probs[0].v;
+            const othersSum = probs[1].v + probs[2].v;
+            const isGold = maxVal > (othersSum + 10);
+            const isBomb = isGold && dcSum > 85;
+
+            return { ...match, _p1:p1, _px:px, _p2:p2, _dcLabel:dcLabel, _dcSum:dcSum, _isGold:isGold, _isBomb:isBomb, _maxVal:maxVal };
+        }
+
+        // === RENDERING ===
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            renderDashboard();
+        }
+
+        function changeSort(val) { currentSort = val; renderDashboard(); }
+
+        function getFilteredSorted() {
+            let filtered = currentTab === 'bomb' ? matchesData.filter(m => m._isBomb) : matchesData;
+            let sorted = [...filtered];
+            
+            if (currentSort === 'league') {
+                sorted.sort((a,b) => (a['Campionato']||'').localeCompare(b['Campionato']||''));
+            } else {
+                sorted.sort((a,b) => {
+                    const parseD = s => { if(!s) return 0; const p=s.split(' '); const d=p[0].split('/'); 
+                        return new Date(`${d[2]}-${d[1]}-${d[0]}T${p[1]||'00:00'}`).getTime(); };
+                    return parseD(b['Data']) - parseD(a['Data']);
+                });
+            }
+            return sorted;
+        }
+
+        function getProbClass(val, maxVal, isGold) {
+            if (val === maxVal && isGold) return 'c-gold bg-gold';
+            if (val === maxVal) return 'c-green bg-green';
+            // Simplified for brevity - full logic uses min/mid/max comparison
+            return 'c-white bg-white'; 
+        }
+        
+        // Full prob classes helper
+        function getProbClasses(p1, px, p2, maxVal, isGold) {
+            const vals = [p1,px,p2]; const sorted=[...vals].sort((a,b)=>a-b);
+            const min=sorted[0], mid=sorted[1];
+            const get = v => {
+                if(v===maxVal && isGold) return 'c-gold bg-gold';
+                if(v===maxVal) return 'c-green bg-green';
+                if(v===min) return 'c-red bg-red';
+                return 'c-white bg-white';
+            };
+            return { c1:get(p1), cX:get(px), c2:get(p2) };
+        }
+
+        function renderDashboard() {
+            const dashboard = document.getElementById('dashboard');
+            dashboard.innerHTML = '';
+            const list = getFilteredSorted();
+
+            if (!list.length) {
+                dashboard.innerHTML = `<div class="empty-state">
+                    <i class="fa-solid fa-ghost" style="font-size:3rem;margin-bottom:1rem;opacity:0.5"></i><br>
+                    ${currentTab==='bomb' ? 'Nessuna partita BOMBA trovata' : 'Nessuna partita da visualizzare'}
+                </div>`; return;
+            }
+
+            list.forEach(m => {
+                const cls = getProbClasses(m._p1, m._px, m._p2, m._maxVal, m._isGold);
+                const predCls = m._isGold ? 'c-gold bg-gold' : 'c-green bg-green';
+                const bombBadge = m._isBomb ? '<i class="fa-solid fa-bomb" style="margin-left:6px;animation:pulse-gold 1s infinite"></i>' : '';
+                const cardCls = m._isBomb ? 'match-card bomb-card' : 'match-card';
+
+                dashboard.insertAdjacentHTML('beforeend', `
+                    <div class="${cardCls}">
+                        <div class="card-header">
+                            <span class="league-name"><i class="fa-solid fa-trophy"></i> ${m['Campionato']||'N/A'}</span>
+                            <span><i class="fa-regular fa-clock"></i> ${m['Data']||''}</span>
+                        </div>
+                        <div class="teams-row">
+                            <div class="team">${m['Casa']||'Casa'}</div>
+                            <div class="vs-badge">VS</div>
+                            <div class="team away">${m['Trasferta']||'Ospite'}</div>
+                        </div>
+                        <div class="prediction-core">
+                            <div class="pred-badge ${predCls}">${m._dcLabel}${bombBadge}</div>
+                            <div style="text-align:center">
+                                <span style="font-size:0.7rem;color:var(--text-muted);display:block">Ris. Esatto</span>
+                                <strong>${m['Risultato_Esatto']||'-'}</strong>
+                            </div>
+                        </div>
+                        <div class="prob-container">
+                            <div class="prob-box ${cls.c1}"><span class="prob-label">1</span>${m._p1}%</div>
+                            <div class="prob-box ${cls.cX}"><span class="prob-label">X</span>${m._px}%</div>
+                            <div class="prob-box ${cls.c2}"><span class="prob-label">2</span>${m._p2}%</div>
+                        </div>
+                        <div class="stats-footer">
+                            <span><i class="fa-solid fa-shield-halved"></i> DC: ${m._dcLabel} (${Math.round(m._dcSum)}%)</span>
+                            <span><i class="fa-solid fa-futbol"></i> Gol: ${m['Media_Gol']||'-'}</span>
+                        </div>
+                    </div>
+                `);
+            });
+        }
+
+        // === PWA SERVICE WORKER REGISTRATION ===
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(console.error);
+        }
+
+        // === INIT ===
+        initTheme();
+        if (!loadData()) {
+            document.getElementById('upload-zone').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
