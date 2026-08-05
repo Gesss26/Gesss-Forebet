@@ -93,6 +93,7 @@
         .match-card.bomb-card { border-color: var(--col-gold); box-shadow: 0 0 15px rgba(251,191,36,0.15); }
         .card-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
         .league-name { font-weight: 600; color: var(--col-gold); }
+        .match-datetime { display: flex; align-items: center; gap: 6px; font-weight: 600; color: var(--text-main); }
         .teams-row { display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 1rem; }
         .team { flex: 1; }
         .team.away { text-align: right; }
@@ -299,17 +300,16 @@
             if (currentTab === 'bomb') filtered = filtered.filter(m => m._isBomb);
             
             filtered.sort((a, b) => {
-                // La DATA comanda SEMPRE come primo filtro in entrambe le viste
-                const dateDiff = a._parsedDate.getTime() - b._parsedDate.getTime();
-                if (dateDiff !== 0) return dateDiff;
+                // La DATA+ORA comanda SEMPRE come primo filtro assoluto
+                const timeDiff = a._parsedDate.getTime() - b._parsedDate.getTime();
+                if (timeDiff !== 0) return timeDiff;
                 
                 // SECONDO FILTRO: dipende dalla vista selezionata
                 if (currentView === 'league') {
-                    // Vista Campionato: dopo la data, ordina A-Z per campionato
+                    // Vista Campionato: a parità di data/ora esatta, ordina A-Z per campionato
                     return (a['Campionato'] || '').localeCompare(b['Campionato'] || '', 'it', { sensitivity: 'base' });
                 } else {
-                    // Vista Data: nessun secondo filtro alfabetico, mantieni ordine orario puro
-                    // (I campionati saranno naturalmente misti a parità di data/ora)
+                    // Vista Data: ordine puramente cronologico, nessun riordino alfabetico
                     return 0; 
                 }
             });
@@ -345,6 +345,13 @@
             if (md.getTime() === tomorrow.getTime()) return "DOMANI";
             const days = ['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
             return days[d.getDay()] + ' ' + d.getDate() + '/' + (d.getMonth()+1);
+        }
+        
+        function formatCardDate(d) {
+            if (!d) return '';
+            const dd = String(d.getDate()).padStart(2,'0');
+            const mm = String(d.getMonth()+1).padStart(2,'0');
+            return `${dd}/${mm}`;
         }
 
         function renderDashboard() {
@@ -387,12 +394,16 @@
                 const bombBadge = m._isBomb ? '<i class="fa-solid fa-bomb" style="margin-left:6px;animation:pulse-gold 1s infinite;"></i>' : '';
                 const cardCls = m._isBomb ? 'match-card bomb-card' : 'match-card';
                 const timeStr = m._parsedDate ? m._parsedDate.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}) : '';
+                const dateStr = formatCardDate(m._parsedDate);
 
                 dashboard.insertAdjacentHTML('beforeend', `
                     <div class="${cardCls}">
                         <div class="card-header">
                             <span class="league-name"><i class="fa-solid fa-trophy"></i> ${m['Campionato']||'N/A'}</span>
-                            <span><i class="fa-regular fa-clock"></i> ${timeStr}</span>
+                            <span class="match-datetime">
+                                <i class="fa-regular fa-calendar"></i> ${dateStr}
+                                <i class="fa-regular fa-clock"></i> ${timeStr}
+                            </span>
                         </div>
                         <div class="teams-row">
                             <div class="team">${m['Casa']||'Casa'}</div>
